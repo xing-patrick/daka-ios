@@ -27,7 +27,9 @@
 
 ### 方式一：直接下载现成的包（不需要 Mac）
 
-1. 打开 https://github.com/xing-patrick/daka-ios/releases/latest/download/Daka-unsigned.ipa 下载
+1. 打开 https://github.com/xing-patrick/daka-ios/releases/download/latest/Daka-unsigned.ipa 下载
+
+   （这个仓库只维护一个滚动更新的 Release，tag 固定为 `latest`，每次 main 构建成功就覆盖里面的 ipa。）
 2. 电脑上装 [Sideloadly](https://sideloadly.io/)（Windows / macOS 都行），Windows 还需要装 iTunes 或 Apple Devices 以提供驱动
 3. iPhone 用数据线连电脑，在「设置 → 隐私与安全性 → 开发者模式」里打开开发者模式并重启
 4. Sideloadly 里把 ipa 拖进去，Apple ID 填自己的，点 Start；按提示在手机上输入密码

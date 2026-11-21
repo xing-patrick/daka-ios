@@ -97,10 +97,11 @@ jobs:
         run: |
           if gh release view latest >/dev/null 2>&1; then
             gh release upload latest Daka-unsigned.ipa --clobber
+            # 必须是正式版：/releases/latest 会跳过 prerelease，标成预发布直链就 404 了
+            gh release edit latest --prerelease=false || true
           else
             gh release create latest Daka-unsigned.ipa \
               --title "最新构建" \
-              --notes "由 GitHub Actions 自动构建，**未签名**。装到手机需要用 Sideloadly / AltStore 以自己的 Apple ID 重签。" \
-              --prerelease
+              --notes "由 GitHub Actions 自动构建，**未签名**。装到手机需要用 Sideloadly / AltStore 以自己的 Apple ID 重签。"
           fi
           gh release view latest --json assets --jq '.assets[] | "\(.name)  \(.size) bytes"'
