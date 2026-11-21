@@ -17,7 +17,7 @@ struct DayListView: View {
                     list
                 }
             }
-            .navigationTitle(Dates.dateHeader(epochDay: model.day))
+            .navigationTitle(Dates.dateHeader(model.day))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
