@@ -1,0 +1,17 @@
+# XcodeGen 生成物，改 project.yml 重新 generate 即可
+Daka.xcodeproj/
+
+# 构建产物
+.build/
+build/
+out/
+DerivedData/
+*.ipa
+*.xcarchive
+
+# macOS
+.DS_Store
+
+# SwiftPM
+Package.resolved
+.swiftpm/

@@ -1,0 +1,67 @@
+name: ios
+
+# 只跑两件事：数据层单测 + 出未签名 ipa。
+# 未签名包不能直接装，要用 Sideloadly / AltStore 用自己的 Apple ID 重签后侧载。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 数据层单测
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift 版本
+        run: swift --version
+
+      - name: swift test
+        run: swift test --parallel
+
+  build:
+    name: 编译未签名 ipa
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 XcodeGen
+        run: brew install xcodegen
+
+      - name: 生成 Xcode 工程
+        run: xcodegen generate
+
+      - name: 编译（关掉签名）
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Daka.xcodeproj \
+            -scheme Daka \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: 校验产物
+        run: |
+          APP=build/Build/Products/Release-iphoneos/Daka.app
+          test -d "$APP" || { echo "没找到 Daka.app"; exit 1; }
+          plutil -p "$APP/Info.plist" | grep -E 'CFBundleIdentifier|CFBundleShortVersionString'
+
+      - name: 打包成未签名 ipa
+        run: |
+          mkdir -p out/Payload
+          cp -R build/Build/Products/Release-iphoneos/Daka.app out/Payload/
+          cd out && zip -qry ../Daka-unsigned.ipa Payload
+          ls -lh ../Daka-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Daka-unsigned-ipa
+          path: Daka-unsigned.ipa
+          if-no-files-found: error
