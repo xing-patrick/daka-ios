@@ -42,9 +42,9 @@ final class AppModel: ObservableObject {
 
     var isToday: Bool { day == Dates.todayEpochDay() }
 
-    /// 「11月21日 周六 · 已完成 1/3」
+    /// 「今天 · 已完成 1/3」，副标题不跟大标题重复日期
     var subtitle: String {
-        "\(Dates.dateHeader(epochDay: day)) · 已完成 \(doneCount)/\(tasks.count)"
+        "\(Dates.relativeLabel(day)) · 已完成 \(doneCount)/\(tasks.count)"
     }
 
     // MARK: - 操作
