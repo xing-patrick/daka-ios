@@ -31,7 +31,10 @@ jobs:
         run: brew install xcodegen
 
       - name: 生成 Xcode 工程
-        run: xcodegen generate
+        run: |
+          xcodegen generate
+          echo "===== 工程里可用的 scheme ====="
+          xcodebuild -list -project Daka.xcodeproj
 
       - name: 编译（关掉签名）
         run: |
@@ -41,11 +44,26 @@ jobs:
             -scheme Daka \
             -configuration Release \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            build 2>&1 | tee build.log
+
+      # 公开仓库的 job 日志要登录才能下载，但 ::error:: 注解是匿名可读的。
+      # 把编译错误挤进注解里，排查时不用手工复制日志。
+      - name: 编译失败时把错误贴出来
+        if: failure()
+        run: |
+          echo "===== 编译错误 ====="
+          grep -nE "(error:|fatal error:|BUILD FAILED|The following build commands failed|does not contain a scheme)" build.log 2>/dev/null | head -20 || true
+          echo "===== 日志尾部 ====="
+          tail -40 build.log 2>/dev/null || echo "(没有 build.log)"
+          grep -E "(error:|fatal error:|BUILD FAILED|does not contain a scheme)" build.log 2>/dev/null | head -8 | while IFS= read -r line; do
+            echo "::error::$line"
+          done || true
+          { echo "### 编译失败"; echo '```'; tail -60 build.log 2>/dev/null || echo "(没有 build.log)"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 校验产物
         run: |

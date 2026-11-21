@@ -12,7 +12,8 @@ options:
 
 settings:
   base:
-    SWIFT_VERSION: "5.9"
+    # 这是 Swift「语言模式」，Xcode 只认 4.0 / 4.2 / 5.0 / 6.0，写 5.9 会直接报 unsupported
+    SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     TARGETED_DEVICE_FAMILY: "1"
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
@@ -38,6 +39,11 @@ targets:
         # 侧载阶段由 Sideloadly / AltStore 用个人免费证书重签，
         # 这里留空，CI 上再用 CODE_SIGNING_ALLOWED=NO 关掉签名。
         DEVELOPMENT_TEAM: ""
+    # 不显式声明的话 xcodegen 不会生成 shared scheme，
+    # 命令行 `xcodebuild -scheme Daka` 就会报「找不到 scheme」
+    scheme:
+      gatherCoverageData: false
+      buildImplicitDependencies: true
     info:
       path: App/Info.plist
       properties:

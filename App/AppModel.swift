@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// 界面与数据层之间的一层薄封装。
