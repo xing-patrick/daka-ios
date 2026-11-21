@@ -8,6 +8,7 @@ import Foundation
 final class AppModel: ObservableObject {
 
     let store: TaskStore
+    private let reminders = ReminderScheduler()
 
     /// 当前正在看的那一天（epochDay）
     @Published private(set) var day: Int
@@ -19,6 +20,10 @@ final class AppModel: ObservableObject {
         self.day = Dates.todayEpochDay()
         store.seedIfNeeded()
         reload()
+        // 通知权限、分类按钮、首次排期都在这里完成
+        reminders.activate(store: store) { [weak self] in
+            self?.externalChanged()
+        }
     }
 
     // MARK: - 读写
@@ -26,6 +31,17 @@ final class AppModel: ObservableObject {
     func reload() {
         tasks = store.entriesFor(day)
         doneCount = tasks.filter(\.done).count
+    }
+
+    /// 重算待发通知。每次改完数据都要调，否则通知和清单会对不上。
+    func refreshReminders() {
+        reminders.reschedule(store: store)
+    }
+
+    /// 通知按钮改了数据之后，把界面和排期都刷一遍
+    private func externalChanged() {
+        reload()
+        refreshReminders()
     }
 
     func go(to newDay: Int) {
@@ -53,11 +69,13 @@ final class AppModel: ObservableObject {
     func toggle(_ task: DayTask) {
         store.toggleDone(day: day, id: task.id)
         reload()
+        refreshReminders()
     }
 
     func remove(_ task: DayTask) {
         store.removeInstance(day: day, id: task.id)
         reload()
+        refreshReminders()
     }
 
     func addQuick(name: String, minuteOfDay: Int) {
@@ -65,5 +83,6 @@ final class AppModel: ObservableObject {
         guard !trimmed.isEmpty else { return }
         _ = store.addStandalone(day: day, name: trimmed, minuteOfDay: minuteOfDay)
         reload()
+        refreshReminders()
     }
 }
