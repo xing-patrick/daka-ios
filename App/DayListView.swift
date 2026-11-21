@@ -1,12 +1,20 @@
 import SwiftUI
 
-/// 某一天的清单。第 1 步只做「看得见数据」的最小版本：
-/// 换天、看进度、点一下打卡、左滑移除、加一条临时任务。
-/// 任务库 / 编辑 / 导入 / 节假日留到后面几步。
+/// 主界面：某一天的清单。
+/// 底部三个按钮对齐 Android 版：从库添加 / 新建 / 任务库。
 struct DayListView: View {
 
     @EnvironmentObject private var model: AppModel
-    @State private var showingAdd = false
+    @State private var sheet: Sheet?
+
+    private enum Sheet: String, Identifiable {
+        case quickAdd
+        case library
+        case libraryPick
+        case settings
+
+        var id: String { rawValue }
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,42 +29,66 @@ struct DayListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { model.shift(-1) } label: {
+                    Button {
+                        model.shift(-1)
+                    } label: {
                         Image(systemName: "chevron.left")
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { model.shift(1) } label: {
-                        Image(systemName: "chevron.right")
-                    }
-                }
-                ToolbarItem(placement: .bottomBar) {
-                    Button { model.backToToday() } label: {
-                        Label("今天", systemImage: "calendar")
-                    }
-                    .disabled(model.isToday)
-                }
-                ToolbarItem(placement: .bottomBar) {
-                    Button { showingAdd = true } label: {
-                        Label("加一条", systemImage: "plus")
+                    HStack(spacing: 16) {
+                        if !model.isToday {
+                            Button("今天") { model.backToToday() }
+                        }
+                        Button {
+                            model.shift(1)
+                        } label: {
+                            Image(systemName: "chevron.right")
+                        }
+                        Button {
+                            sheet = .settings
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
                     }
                 }
             }
             .safeAreaInset(edge: .top) {
-                Text(model.subtitle)
+                Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 6)
             }
-            .sheet(isPresented: $showingAdd) {
-                QuickAddSheet { name, minute in
-                    model.addQuick(name: name, minuteOfDay: minute)
+            .safeAreaInset(edge: .bottom) {
+                actionBar
+            }
+            .sheet(item: $sheet) { which in
+                switch which {
+                case .quickAdd:
+                    QuickAddSheet { name, minute in
+                        model.addQuick(name: name, minuteOfDay: minute)
+                    }
+                    .presentationDetents([.height(260)])
+                case .library:
+                    LibraryView(picking: false)
+                        .environmentObject(model)
+                case .libraryPick:
+                    LibraryView(picking: true)
+                        .environmentObject(model)
+                case .settings:
+                    SettingsView()
+                        .environmentObject(model)
                 }
-                .presentationDetents([.height(260)])
             }
         }
+    }
+
+    private var subtitle: String {
+        var parts = ["\(Dates.relativeLabel(model.day)) · 已完成 \(model.doneCount)/\(model.tasks.count)"]
+        if model.isRestDay { parts.append("休息日") }
+        return parts.joined(separator: " · ")
     }
 
     private var list: some View {
@@ -77,6 +109,30 @@ struct DayListView: View {
         .listStyle(.plain)
     }
 
+    private var actionBar: some View {
+        HStack(spacing: 0) {
+            action("从库添加", "books.vertical") { sheet = .libraryPick }
+            action("新建", "plus.circle") { sheet = .quickAdd }
+            action("任务库", "list.bullet.rectangle") { sheet = .library }
+        }
+        .padding(.top, 6)
+        .background(.bar)
+    }
+
+    private func action(_ title: String, _ icon: String, _ tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                Text(title)
+                    .font(.caption2)
+            }
+            .frame(maxWidth: .infinity)
+            .foregroundStyle(Color.accentColor)
+        }
+        .buttonStyle(.plain)
+    }
+
     private var emptyState: some View {
         VStack(spacing: 10) {
             Image(systemName: "checkmark.circle")
@@ -85,6 +141,9 @@ struct DayListView: View {
             Text("这天还没有任务")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            Text("从任务库挑一条，或者直接新建")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -160,7 +219,7 @@ struct DayTaskRow: View {
     }
 }
 
-/// 临时加一条：名称 + 时间。后面做完整编辑器时会换成正式页面。
+/// 临时加一条：只进当天，不进任务库
 struct QuickAddSheet: View {
 
     @Environment(\.dismiss) private var dismiss
@@ -175,7 +234,7 @@ struct QuickAddSheet: View {
                 TextField("任务名称", text: $name)
                 DatePicker("时间", selection: $time, displayedComponents: .hourAndMinute)
             }
-            .navigationTitle("加一条")
+            .navigationTitle("新建一条")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

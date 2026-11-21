@@ -38,9 +38,18 @@ final class ReminderScheduler: NSObject {
         center.delegate = self
         registerCategories()
         Task {
-            _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+            await requestAuthorization()
             reschedule(store: store)
         }
+    }
+
+    /// 首次启动时弹系统授权框；已经决定过就什么都不做
+    func requestAuthorization() async {
+        _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await center.notificationSettings().authorizationStatus
     }
 
     func reschedule(store: TaskStore) {

@@ -207,4 +207,17 @@ final class TaskStoreTests: XCTestCase {
         store.seedIfNeeded()
         XCTAssertEqual(store.templates.count, 3)
     }
+
+    func testClearAllThenSeedBringsExamplesBack() {
+        let store = makeStore()
+        store.seedIfNeeded()
+        store.clearAll()
+
+        XCTAssertTrue(store.templates.isEmpty, "清空后库应该是空的")
+        XCTAssertTrue(store.entriesFor(today).isEmpty)
+
+        // clearAll 要复位 seeded，否则设置页的「清空后重新灌示例」会失效
+        store.seedIfNeeded()
+        XCTAssertEqual(store.templates.count, 3)
+    }
 }

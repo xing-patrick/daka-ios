@@ -330,6 +330,8 @@ final class TaskStore {
     func clearAll() {
         store.data.templates = []
         store.data.days = [:]
+        // 一并复位：否则清空之后再调 seedIfNeeded 会被 seeded 挡住，界面就永远空了
+        store.data.seeded = false
         store.save()
     }
 }
